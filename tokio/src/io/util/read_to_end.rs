@@ -1,10 +1,11 @@
 use crate::io::{AsyncRead, ReadBuf};
 
+use bytes::buf::UninitSlice;
 use pin_project_lite::pin_project;
 use std::future::Future;
 use std::io;
 use std::marker::PhantomPinned;
-use std::mem::{self, MaybeUninit};
+use std::mem;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -97,9 +98,9 @@ fn reserve(buf: &mut Vec<u8>, bytes: usize) {
 }
 
 /// Returns the unused capacity of the provided vector.
-fn get_unused_capacity(buf: &mut Vec<u8>) -> &mut [MaybeUninit<u8>] {
+fn get_unused_capacity(buf: &mut Vec<u8>) -> &mut UninitSlice {
     let uninit = bytes::BufMut::bytes_mut(buf);
-    unsafe { &mut *(uninit as *mut _ as *mut [MaybeUninit<u8>]) }
+    unsafe { &mut *(uninit as *mut _ as *mut UninitSlice) }
 }
 
 impl<A> Future for ReadToEnd<'_, A>

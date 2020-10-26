@@ -77,7 +77,7 @@ mod util {
             return Poll::Ready(Ok(0));
         }
 
-        let orig = buf.bytes_mut().as_ptr() as *const u8;
+        let orig = buf.bytes_mut().as_mut_ptr() as *const u8;
         let mut b = ReadBuf::uninit(buf.bytes_mut());
 
         ready!(io.poll_read(cx, &mut b))?;

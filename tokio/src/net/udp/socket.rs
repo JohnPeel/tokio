@@ -1,3 +1,5 @@
+use bytes::buf::UninitSlice;
+
 use crate::io::{PollEvented, ReadBuf};
 use crate::net::{to_socket_addrs, ToSocketAddrs};
 
@@ -371,7 +373,7 @@ impl UdpSocket {
 
             // Safety: will not read the maybe uinitialized bytes.
             let b = unsafe {
-                &mut *(buf.unfilled_mut() as *mut [std::mem::MaybeUninit<u8>] as *mut [u8])
+                &mut *(buf.unfilled_mut() as *mut UninitSlice as *mut [u8])
             };
             match self.io.get_ref().recv(b) {
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -552,7 +554,7 @@ impl UdpSocket {
 
             // Safety: will not read the maybe uinitialized bytes.
             let b = unsafe {
-                &mut *(buf.unfilled_mut() as *mut [std::mem::MaybeUninit<u8>] as *mut [u8])
+                &mut *(buf.unfilled_mut() as *mut UninitSlice as *mut [u8])
             };
             match self.io.get_ref().recv_from(b) {
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -641,7 +643,7 @@ impl UdpSocket {
 
             // Safety: will not read the maybe uinitialized bytes.
             let b = unsafe {
-                &mut *(buf.unfilled_mut() as *mut [std::mem::MaybeUninit<u8>] as *mut [u8])
+                &mut *(buf.unfilled_mut() as *mut UninitSlice as *mut [u8])
             };
             match self.io.get_ref().peek_from(b) {
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {

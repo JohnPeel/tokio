@@ -1,3 +1,5 @@
+use bytes::buf::UninitSlice;
+
 use crate::future::poll_fn;
 use crate::io::{AsyncRead, AsyncWrite, PollEvented, ReadBuf};
 use crate::net::tcp::split::{split, ReadHalf, WriteHalf};
@@ -473,7 +475,7 @@ impl TcpStream {
 
             // Safety: `TcpStream::read` will not peek at the maybe uinitialized bytes.
             let b = unsafe {
-                &mut *(buf.unfilled_mut() as *mut [std::mem::MaybeUninit<u8>] as *mut [u8])
+                &mut *(buf.unfilled_mut() as *mut UninitSlice as *mut [u8])
             };
             match self.io.get_ref().read(b) {
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {

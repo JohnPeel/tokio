@@ -3,7 +3,9 @@
 #![allow(clippy::transmute_ptr_to_ptr)]
 
 use std::fmt;
-use std::mem::{self, MaybeUninit};
+use std::mem;
+
+use bytes::buf::UninitSlice;
 
 /// A wrapper around a byte buffer that is incrementally filled and initialized.
 ///
@@ -25,7 +27,7 @@ use std::mem::{self, MaybeUninit};
 /// region, since it is merely unknown whether this region is uninitialized or
 /// not, and if part of it turns out to be initialized, it must stay initialized.
 pub struct ReadBuf<'a> {
-    buf: &'a mut [MaybeUninit<u8>],
+    buf: &'a mut UninitSlice,
     filled: usize,
     initialized: usize,
 }
@@ -35,7 +37,7 @@ impl<'a> ReadBuf<'a> {
     #[inline]
     pub fn new(buf: &'a mut [u8]) -> ReadBuf<'a> {
         let initialized = buf.len();
-        let buf = unsafe { mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(buf) };
+        let buf = unsafe { mem::transmute::<&mut [u8], &mut UninitSlice>(buf) };
         ReadBuf {
             buf,
             filled: 0,
@@ -47,7 +49,7 @@ impl<'a> ReadBuf<'a> {
     ///
     /// Use `assume_init` if part of the buffer is known to be already inintialized.
     #[inline]
-    pub fn uninit(buf: &'a mut [MaybeUninit<u8>]) -> ReadBuf<'a> {
+    pub fn uninit(buf: &'a mut UninitSlice) -> ReadBuf<'a> {
         ReadBuf {
             buf,
             filled: 0,
@@ -68,7 +70,7 @@ impl<'a> ReadBuf<'a> {
         // safety: filled describes how far into the buffer that the
         // user has filled with bytes, so it's been initialized.
         // TODO: This could use `MaybeUninit::slice_get_ref` when it is stable.
-        unsafe { mem::transmute::<&[MaybeUninit<u8>], &[u8]>(slice) }
+        unsafe { mem::transmute::<&UninitSlice, &[u8]>(slice) }
     }
 
     /// Returns a mutable reference to the filled portion of the buffer.
@@ -78,7 +80,7 @@ impl<'a> ReadBuf<'a> {
         // safety: filled describes how far into the buffer that the
         // user has filled with bytes, so it's been initialized.
         // TODO: This could use `MaybeUninit::slice_get_mut` when it is stable.
-        unsafe { mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(slice) }
+        unsafe { mem::transmute::<&mut UninitSlice, &mut [u8]>(slice) }
     }
 
     /// Returns a new `ReadBuf` comprised of the unfilled section up to `n`.
@@ -98,7 +100,7 @@ impl<'a> ReadBuf<'a> {
         // safety: initialized describes how far into the buffer that the
         // user has at some point initialized with bytes.
         // TODO: This could use `MaybeUninit::slice_get_ref` when it is stable.
-        unsafe { mem::transmute::<&[MaybeUninit<u8>], &[u8]>(slice) }
+        unsafe { mem::transmute::<&UninitSlice, &[u8]>(slice) }
     }
 
     /// Returns a mutable reference to the initialized portion of the buffer.
@@ -110,7 +112,7 @@ impl<'a> ReadBuf<'a> {
         // safety: initialized describes how far into the buffer that the
         // user has at some point initialized with bytes.
         // TODO: This could use `MaybeUninit::slice_get_mut` when it is stable.
-        unsafe { mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(slice) }
+        unsafe { mem::transmute::<&mut UninitSlice, &mut [u8]>(slice) }
     }
 
     /// Returns a mutable reference to the unfilled part of the buffer without ensuring that it has been fully
@@ -121,7 +123,7 @@ impl<'a> ReadBuf<'a> {
     /// The caller must not de-initialize portions of the buffer that have already been initialized.
     /// This includes any bytes in the region marked as uninitialized by `ReadBuf`.
     #[inline]
-    pub unsafe fn unfilled_mut(&mut self) -> &mut [MaybeUninit<u8>] {
+    pub unsafe fn unfilled_mut(&mut self) -> &mut UninitSlice {
         &mut self.buf[self.filled..]
     }
 
@@ -159,7 +161,7 @@ impl<'a> ReadBuf<'a> {
         let slice = &mut self.buf[self.filled..end];
         // safety: just above, we checked that the end of the buf has
         // been initialized to some value.
-        unsafe { mem::transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(slice) }
+        unsafe { mem::transmute::<&mut UninitSlice, &mut [u8]>(slice) }
     }
 
     /// Returns the number of bytes at the end of the slice that have not yet been filled.
